@@ -3,7 +3,7 @@ DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) �
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
-'''c
+```C
 typedef struct node {
     int value;
     char name[NODE_NAME];
@@ -40,7 +40,7 @@ void freeList (List* list);
 /**  Utility */
 Node* deque (List* li, int index); // Deqeue 인덱스 접근
 int deque_count (List* li);
-
+```
 '''
   - List* init(); //리스트(Deque) 초기화함수
   - Node* node (int data);
