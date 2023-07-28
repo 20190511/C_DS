@@ -2,6 +2,8 @@
 DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) 헤더 
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
+
+''' C
   - List* init(); //리스트(Deque) 초기화함수
   - Node* node (int data);
   
@@ -22,3 +24,4 @@ DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) �
   - Node* deque (List* li, int index); // Deqeue 인덱스 접근
   - int deque_count (List* li);
   - void printn (List* list);       //Deque 순회
+'''
