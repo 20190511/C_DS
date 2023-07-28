@@ -4,19 +4,6 @@ DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) �
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
 ```C
-typedef struct node {
-    int value;
-    char name[NODE_NAME];
-    struct node* next;
-    struct node* prev; 
-}Node;
-
-typedef struct {
-   Node* head;
-   Node* tail;
-   int count;
-}List;
-
 /** Init function*/
 List* init();
 Node* node (int data);
