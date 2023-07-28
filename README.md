@@ -3,7 +3,7 @@ DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) �
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
-'''C
+'''c
 typedef struct node {
     int value;
     char name[NODE_NAME];
