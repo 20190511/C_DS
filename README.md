@@ -1,7 +1,7 @@
 # C_DS
 DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) 헤더 
 
-## _1. Deque.h (데크)_ 
+## (_1. Deque.h (데크)_)[]
   - List* init(); //리스트(Deque) 초기화함수
   - Node* node (int data);
   
