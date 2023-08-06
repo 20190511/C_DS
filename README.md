@@ -29,7 +29,7 @@ Node* deque (List* li, int index); // Deqeue 인덱스 접근
 int deque_count (List* li);
 ```
 
-## [_2. Btree.h (비트리 자료구조)_] (https://github.com/20190511/C_DS/blob/main/btree.h)
+## [_2. Btree.h (비트리 자료구조)_](https://github.com/20190511/C_DS/blob/main/btree.h)
 ```C
 Node*   node(const char* p, int i);                          // 노드 생성자 (내부실행파일에서 사용)
 Header* header();                                            // B트리 헤더 생성자
