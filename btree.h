@@ -1,14 +1,20 @@
+#ifndef BTREE
+#define BTREE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "node.h"
 
 #ifndef KEY_SIZE
 #define KEY_SIZE        5
 #define MIN_KEY_SIZE    KEY_SIZE/2
-#define PATH_SIZE       256
 #define MAX(_A,_B)      _A >= _B ? _A : _B
 #define MIN(_A,_B)      _A <= _B ? _A : _B
+#endif
+
+#ifndef PATH_SIZE
+#define PATH_SIZE       256
 #endif
 
 #ifndef true
@@ -16,10 +22,17 @@
 #define false           0
 #endif
 
+#ifndef NODE
+#define NODE
 typedef struct {
-    char path[256];
     int inode;
+    int value;
+    char path[PATH_SIZE];
+    struct node* next;
+    struct node* prev; 
+    sturct node* par;
 }Node;
+#endif
 
 typedef struct bnode_{
     Node* node_key[KEY_SIZE+1];     //key_ptr
@@ -483,3 +496,4 @@ void    btree_print(Header* h)
         free(del);
     }
 }
+#endif
