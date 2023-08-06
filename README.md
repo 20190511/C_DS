@@ -1,5 +1,7 @@
 # C_DS
 DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) 헤더 
+모든 헤더는 동시에 같이 사용가능하며, Node.h 의 노드를 공유하고 있는 형태로 구현됨  
+[_동작예제파일_](https://github.com/20190511/C_DS/blob/main/test.c)
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
