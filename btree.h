@@ -120,10 +120,10 @@ int btree_delete_index(BNode* bn, int del_idx)
     BNode tmp;
     int offset = bn->count - del_idx - 1;
     memcpy(&(tmp.node_key[0]), &(bn->node_key[del_idx + 1]), offset * sizeof(Node *));
-    memcpy(&(tmp.node_ptr[0]), &(bn->node_ptr[del_idx + 1]), (offset+1) * sizeof(BNode *));
+    memcpy(&(tmp.node_ptr[0]), &(bn->node_ptr[del_idx + 2]), offset * sizeof(BNode *));
 
     memcpy(&(bn->node_key[del_idx]), &(tmp.node_key[0]), offset * sizeof(Node *));
-    memcpy(&(bn->node_ptr[del_idx]), &(tmp.node_ptr[0]), (offset+1) * sizeof(BNode *));
+    memcpy(&(bn->node_ptr[del_idx+1]), &(tmp.node_ptr[0]), offset * sizeof(BNode *));
 
     bn->node_key[bn->count - 1] = NULL;
     bn->node_ptr[bn->count] = NULL;
@@ -142,20 +142,26 @@ int btree_insert_index(BNode* bn, Node* n, int idx)
     int cpy_size = bn->count - idx; //복사해야하는 칸 수 + 1 (더미노드)
     // node_key 는 idx 부터 cpy_size만큼 
     // node_idx 는 idx+1 부터 cpy_size만큼
-    memcpy(&(cpy__.node_key[0]), &(bn->node_key[idx]), sizeof(BNode*) * cpy_size);
-    memcpy(&(cpy__.node_ptr[0]), &(bn->node_ptr[idx+1]), sizeof(Node*) * cpy_size);
+    if (cpy_size >= 0) {
+        memcpy(&(cpy__.node_key[0]), &(bn->node_key[idx]), sizeof(BNode *) * cpy_size);
+        memcpy(&(cpy__.node_ptr[0]), &(bn->node_ptr[idx]), sizeof(Node *) * (cpy_size + 1));
+    }
     //복사, 다음 노드는 NULL로 만듦
     bn->node_key[idx] = n;
-    bn->node_ptr[idx+1] = NULL;
+    //bn->node_ptr[idx] = NULL;
 
-    memcpy(&(bn->node_key[idx+1]), &(cpy__.node_key[0]), sizeof(BNode*) * cpy_size);
-    memcpy(&(bn->node_ptr[idx+2]), &(cpy__.node_ptr[0]), sizeof(Node*) * cpy_size);
+    if (cpy_size >= 0) {
+        memcpy(&(bn->node_key[idx + 1]), &(cpy__.node_key[0]), sizeof(BNode *) * cpy_size);
+        memcpy(&(bn->node_ptr[idx + 1]), &(cpy__.node_ptr[0]), sizeof(Node *) * (cpy_size + 1));
+    }
     bn->count++;
     return true;
 }
  
 Node*   btree_delete(Header* h, const char* s)
 {
+    if (!strcmp(s, "olle"))
+        printf("\n");
     BNode* find_bnode;
     //btree 어느 Bnode 인지 찾고 + 루트노드가 아니면 스와핑(왼or오)
     Node*  find_node = btree_search(h, s, &find_bnode), *ret_node;
@@ -181,40 +187,18 @@ Node*   btree_delete(Header* h, const char* s)
         lcnt = blptr->count, rcnt = brptr->count;
         BNode *child, *parent;
         Node  *tmp = find_node;
-        //swapping만 하면됨 
+        //swapping만 하면됨 --> 수정! : swap이 아니라 바꾸기만하면됨!
         if (lcnt >= rcnt) { //왼쪽
-            parent = find_bnode;
-            child = find_bnode->node_ptr[idx];
-            while(child) {  
-                if (parent == find_bnode)
-                    parent->node_key[idx] = child->node_key[child->count-1];
-                else
-                    parent->node_key[parent->count-1] = child->node_key[child->count-1];
-                parent = child;
-                child = child->node_ptr[child->count];
-                if (child == NULL) {
-                    parent->node_key[parent->count-1] = tmp;
-                    find_bnode = parent;
-                    idx = parent->count-1;
-                }
-            }
+            find_bnode->node_key[idx] = blptr->node_key[lcnt-1];
+            blptr->node_key[lcnt-1] = tmp;
+            find_bnode = blptr;
+            idx = lcnt-1;
         }
         else { //오른쪽
-            parent = find_bnode;
-            child = find_bnode->node_ptr[idx+1];
-            while(child) {  
-                if (parent == find_bnode)
-                    parent->node_key[idx] = child->node_key[0];
-                else
-                    parent->node_key[0] = child->node_key[0];
-                parent = child;
-                child = child->node_ptr[0];
-                if (child == NULL) {
-                    parent->node_key[0] = tmp;
-                    find_bnode = parent;
-                    idx = 0;
-                }
-            }
+            find_bnode->node_key[idx] = brptr->node_key[0];
+            brptr->node_key[0] = tmp;
+            find_bnode = brptr;
+            idx = 0;
         }
     }
 
@@ -240,6 +224,7 @@ Node*   btree_delete(Header* h, const char* s)
             if (l_sib->count > MIN_KEY_SIZE) { 
                 Node* mv_node = l_sib->node_key[l_sib->count-1];
                 Node* mv_parnode = find_bnode->parent_ptr->node_key[par_idx-1];
+                BNode* mv_node_right = l_sib->node_ptr[l_sib->count]; //mv노드의 오른쪽 끝의 포인터 *중요!
                 find_bnode->parent_ptr->node_key[par_idx-1] = mv_node;
                 if (!btree_delete_index(l_sib, l_sib->count-1)) {
                     fprintf(stderr, "[btree_delete] btree_delete_index(left) error\n");
@@ -249,11 +234,15 @@ Node*   btree_delete(Header* h, const char* s)
                 if(!btree_insert_index(find_bnode, mv_parnode, 0)) {
                     fprintf(stderr, "[btree_delete] btree_insert_index(left) error\n");
                     return NULL;
-                }
+                } 
                 else {
+                    find_bnode->node_ptr[0] = mv_node_right;  
+                    if (mv_node_right)
+                        mv_node_right->parent_ptr = find_bnode;
                     find_bnode = find_bnode->parent_ptr;
                     continue;
                 }
+                //포인터 옮기기 ...
             }
         }
 
@@ -262,6 +251,7 @@ Node*   btree_delete(Header* h, const char* s)
             BNode* r_sib = find_bnode->parent_ptr->node_ptr[par_idx+1];
             if (r_sib->count > MIN_KEY_SIZE) {
                 Node* mv_node = r_sib->node_key[0];
+                BNode* mv_node_left = r_sib->node_ptr[0]; //mv노드의 오른쪽 끝의 포인터 *중요!
                 Node* mv_parnode = find_bnode->parent_ptr->node_key[par_idx];
                 find_bnode->parent_ptr->node_key[par_idx] = mv_node;
                 if (!btree_delete_index(r_sib, 0)) {
@@ -273,6 +263,9 @@ Node*   btree_delete(Header* h, const char* s)
                     return NULL;
                 }
                 else {
+                    find_bnode->node_ptr[find_bnode->count] = mv_node_left;
+                    if (mv_node_left)
+                        mv_node_left->parent_ptr = find_bnode;
                     find_bnode = find_bnode->parent_ptr;
                     continue;
                 }
