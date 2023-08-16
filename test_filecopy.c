@@ -15,17 +15,16 @@ void search (List* li, const char* path);		// path 경로에 있는 전 파일 l
 void take_ch(List* li, const char* dir_path);   // li Deque에 있는 파일 중 .c, .h 파일만 복사하는 함수
 void fcopy(const char* from, const char* to);   // File 복사함수
 
-int main(void)
+int main(int argc, char* argv[])
 {
+	if (argc != 3) {
+		fprintf(stderr, "usage %s : <DIRECOTRY> <TO_DIRECTORY>\n", argv[0]);
+		exit(1);
+	}
 	List* l = init(NULL);
-	char *cwd = getcwd(NULL,0);
-	search(l, "/home/junhyeong/ds");
-	Node* n = deque(l, -2);
-	//printn(l);
-	printf("%s\n", n->path);
-
-	take_ch(l, "/home/junhyeong/ds/file");	
-
+	search(l, argv[1]);
+	take_ch(l, argv[2]);	
+	freeList(l);
 	exit(0);
 }
 
@@ -156,7 +155,12 @@ void take_ch(List* li, const char* dir_path)
 		if (only_file == NULL)
 			continue;
 		strcpy(ptr, only_file+1);
-		printf("[%d] copy %s --> %s\n", f_cnt, s->path, dirs);
+		if (!strcmp(s->path, dirs)) {
+			printf("[%d] same %s --> %s, so PASS!\n", f_cnt, s->path, dirs);
+			continue;
+		}
+		else
+			printf("[%d] copy %s --> %s\n", f_cnt, s->path, dirs);
 		fcopy(s->path, dirs);	
 	}
 
