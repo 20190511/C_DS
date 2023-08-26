@@ -57,3 +57,19 @@ int     heap_clear(Heap* h);                                // 재귀호출이 �
 void    heap_print(Heap* h);                                // heap 자료구조 전체 출력 (트리형태로 출력 : 임시 큐 구현해서 사용 (BFS))
 ```
 
+## [_4. object.h (자유형 자료구조)_](https://github.com/20190511/C_DS/blob/main/object.h)
+```C
+/* Obj 구조체 안에 파이썬 리스트 처럼 타입에 상관없이 타입과 , 데이터를 (void*) 형태로 저장해두었다가,
+ * 실제로 필요할 때 가공해서 사용
+ * deque.h 에서 자유형 리스트를 생성할 때 사용할 헤더. test.c 의 test7() 함수에서 실 사용법 있음.
+ */
+Obj*    set_obj     (Obj** obj_ptr, void* value, int mode=OBJ_VOID);
+Obj*    set_int     (Obj** old_ptr, int i);         //int i 로 Obj 하나 생성 (이전 값 존재시 할당해제하고 생성)
+Obj*    set_double  (Obj** old_ptr, double d);      //double 로 Obj 하나 생성
+Obj*    set_char    (Obj** old_ptr, char c);        //char 로 Obj 하나  
+void*   set_get     (Obj* obj);        // obj value를 리턴받음
+
+void    set_free    (Obj* obj);         //할당 해제함수.
+int  printo (Obj* obj);
+```
+
