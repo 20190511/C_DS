@@ -2,6 +2,7 @@
 - DataStructure For C (Cpp Ds) --> C 언어 전용 자료구조(data Structure) 헤더 
 - 모든 헤더는 동시에 사용 가능하며, Node.h 의 노드를 공유하고 있는 형태로 구현됨  
 - [_동작예제파일 (test.c)_](https://github.com/20190511/C_DS/blob/main/test.c)
+> ![image](https://github.com/20190511/C_DS/assets/70988272/22e27caa-cea3-4aa4-930a-a91f7e2e5c40)
 - [_Deque를 이용한 (c,h파일) 파일 복사 예제파일_](https://github.com/20190511/C_DS/blob/main/test_filecopy.c)  
 > ![image](https://github.com/20190511/C_DS/assets/70988272/2000a771-c52e-4796-a8fb-a4b02faf7062)  
 
