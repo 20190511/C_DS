@@ -1,12 +1,15 @@
+#ifndef DEQUE
+#define DEQUE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
-#ifndef JH
-#define JH
-#define NODE_NAME       20
+#include "node.h"
+#ifndef PATH_SIZE
+#define PATH_SIZE        256
+#endif
 #define INDEX_ERROR     "EndexOutOfError"
+
 
 #ifndef true
 #define true 1
@@ -16,27 +19,38 @@
 #define false 0
 #endif
 
+#ifndef NODE
+#define NODE
 typedef struct node {
+    int inode;
     int value;
-    char name[NODE_NAME];
+    char path[PATH_SIZE];
     struct node* next;
     struct node* prev; 
+    struct node* par;
 }Node;
+#endif
 
 typedef struct {
    Node* head;
    Node* tail;
+   int mode;    //0 : local 변수, 1 : 동적할당
    int count;
 }List;
 
 /** Init function*/
-List* init();
+List* init(List* li);
 Node* node (int data);
+Node* nodeObj (Obj* Obj);
 
 // For Insert Method
-void append_tail(List* l, int data, char* name = "NULL");       // Deque 앞에 연결
-void append_head(List* l, int data, char* name = "NULL");       // Deque 끝에 연결
-int append(List* l, int idx, int data, char* name = "NULL");    // Deque index 요소 연결
+void append_tail(List* l, int data, const char* name = "null");       // Deque 앞에 연결
+void append_head(List* l, int data, const char* name = "NULL");       // Deque 끝에 연결
+int append(List* l, int idx, int data, const char* name = "NULL");    // Deque index 요소 연결
+
+void append_tail_obj(List* l, Obj* obj, const char* name = "NULL");       // Deque 앞에 연결
+void append_head_obj(List* l, Obj* obj, const char* name = "NULL");       // Deque 끝에 연결
+int append_obj(List* l, int idx, Obj* obj, const char* name = "NULL");    // Deque index 요소 연결
 
 // For Delete Method
 Node* pop_front(List* l);           // Deque 끝 삭제
@@ -79,7 +93,7 @@ int main(void)
 void freeNode (Node* node)
 {
     //del element
-    memset(node->name, 0, NODE_NAME);
+    memset(node->path, 0, PATH_SIZE);
     node->next = node->prev = NULL; //안전하게 삭제
     free(node);
     return; 
@@ -94,10 +108,12 @@ void freeList (List* list)
         node = node->next;
         freeNode(delNode);
     }
-    //안전하게 삭제
+
+    // 안전하게 삭제
     list->head = list->tail = NULL;
     list->count = 0;
-    free(list);
+    if (list->mode) 
+        free(list);
 }
 
 int deque_count (List* li) 
@@ -124,7 +140,7 @@ Node* pop(List* l, int idx)        // Deque 요소 삭제
  * append(l, data, name, 1) 두 번째 요소에 연결함 : 
  * 만약 요소 idx가 범위를 벗어나면 에러처리
 */
-int append(List* l, int idx, int data, char* name)
+int append(List* l, int idx, int data, const char* name)
 {
     //idx가 가리키는 위치로 삽입이 되도록 설정
     Node* ptr = deque(l, idx);
@@ -134,9 +150,9 @@ int append(List* l, int idx, int data, char* name)
     
     Node* newNode = node(data);
     if (!strcmp(name, "NULL"))
-        snprintf(newNode->name, NODE_NAME, "%d", l->count); 
+        snprintf(newNode->path, PATH_SIZE, "%d", l->count); 
     else
-        strncpy(newNode->name, name, NODE_NAME);
+        strncpy(newNode->path, name, PATH_SIZE);
 
     l->count++;
     if (idx >= 0) {
@@ -183,18 +199,27 @@ Node* pop_rear(List* l)
     return ret;
 }
 
-List* init()
+/**
+ *  init(NULL)  사용 시 동적할당으로 list 할당
+ *  init(&li) 사용 시 local 변수로 list 할당
+*/
+List* init(List* li)
 {
-    List* list = (List*)malloc(sizeof(List));
+    List* list = li;
+    if (!li) {
+        list = (List*)malloc(sizeof(List));
+        list->mode = 1;
+    }
+    else
+        list->mode = 0;
     Node* h = (Node*)malloc(sizeof(Node));
     Node* t = (Node*)malloc(sizeof(Node));
-    
 
     h->prev = t->next = NULL;
     h->next = t; t->prev = h;
     list->head = h; list->tail = t;
-    strncpy(h->name, "dummy_head", 20);
-    strncpy(t->name, "dummy_tail", 20);
+    strncpy(h->path, "dummy_head", 20);
+    strncpy(t->path, "dummy_tail", 20);
     h->value = t->value = -1;
     list->count = 0;
     return list;
@@ -203,21 +228,49 @@ List* init()
 Node* node (int data)
 {
     Node* newNode = (Node*)malloc(sizeof(Node));
-    //strncpy(newNode->name, name, NODE_NAME);
+    //strncpy(newNode->path, name, NODE_NAME);
     newNode->value = data;
     newNode->prev = newNode->next = NULL;
+    newNode->obj = NULL;
     return newNode;
 }
 
-void append_tail(List* l, int data, char* name )
+/**
+ * Object 리스트, (다양한 자료구조를 deque에 연결할 수 있음)
+*/
+Node* nodeObj (Obj* obj)
+{
+    Node* newNode = node(0);
+    if (obj != NULL)
+        newNode->obj = obj;
+    /*
+    switch (mode) {
+    case OBJ_INT:
+        set_int(newNode->obj, *((int*)ptr))
+        break;
+    case OBJ_CHAR:
+        set_char(newNode->obj, *((char*)ptr))
+        break;
+    case OBJ_DOUBLE:
+        set_double(newNode->obj, *((double*)ptr))
+        break;
+    case OBJ_VOID:
+        set_obj(newNode->obj, ptr, OBJ_VOID);
+        break;
+    }
+    */
+    return newNode;
+}
+
+void append_tail(List* l, int data, const char* path )
 {
     if (l == NULL)
         return;
     Node* ns = node(data);
-    if (!strcmp(name, "NULL"))
-        snprintf(ns->name, NODE_NAME, "%d", l->count); 
+    if (!strcmp(path, "NULL"))
+        snprintf(ns->path, PATH_SIZE, "%d", l->count); 
     else
-        strncpy(ns->name, name, NODE_NAME);
+        strncpy(ns->path, path, PATH_SIZE);
 
     l->count++;
     ns->prev = l->tail->prev;
@@ -225,21 +278,82 @@ void append_tail(List* l, int data, char* name )
     ns->prev->next = ns->next->prev = ns;
 }
 
-void append_head(List* l, int data, char* name )
+void append_head(List* l, int data, const char* path )
 {
     if (l == NULL || l->head == NULL)
         return;
 
     Node* ns = node(data);
-    if (!strcmp(name, "NULL"))
-        snprintf(ns->name, NODE_NAME, "%d", l->count); 
+    if (!strcmp(path, "NULL"))
+        snprintf(ns->path, PATH_SIZE, "%d", l->count); 
     else
-        strncpy(ns->name, name, NODE_NAME);
+        strncpy(ns->path, path, PATH_SIZE);
 
     l->count++;
     ns->next = l->head->next;
     ns->prev = l->head;
     ns->next->prev = ns->prev->next = ns;
+}
+
+void append_tail_obj(List* l, Obj* obj, const char* path)       // Deque 앞에 연결
+{
+    if (l == NULL || obj == NULL)
+        return;
+    Node* ns = nodeObj(obj);
+    if (!strcmp(path, "NULL"))
+        snprintf(ns->path, PATH_SIZE, "%d", l->count); 
+    else
+        strncpy(ns->path, path, PATH_SIZE);
+
+    l->count++;
+    ns->prev = l->tail->prev;
+    ns->next = l->tail;
+    ns->prev->next = ns->next->prev = ns;
+}
+
+void append_head_obj(List* l, Obj* obj, const char* path)       // Deque 끝에 연결
+{
+    if (l == NULL || l->head == NULL || obj == NULL)
+        return;
+
+    Node* ns = nodeObj(obj);
+    if (!strcmp(path, "NULL"))
+        snprintf(ns->path, PATH_SIZE, "%d", l->count); 
+    else
+        strncpy(ns->path, path, PATH_SIZE);
+
+    l->count++;
+    ns->next = l->head->next;
+    ns->prev = l->head;
+    ns->next->prev = ns->prev->next = ns;
+}
+
+int append_obj(List* l, int idx, Obj* obj, const char* name)    // Deque index 요소 연결
+{
+    //idx가 가리키는 위치로 삽입이 되도록 설정
+    Node* ptr = deque(l, idx);
+    //노드가 없는 경우
+    if (ptr == NULL || obj == NULL) 
+        return false;
+    
+    Node* newNode = nodeObj(obj);
+    if (!strcmp(name, "NULL"))
+        snprintf(newNode->path, PATH_SIZE, "%d", l->count); 
+    else
+        strncpy(newNode->path, name, PATH_SIZE);
+
+    l->count++;
+    if (idx >= 0) {
+        newNode->next = ptr;
+        newNode->prev = ptr->prev;
+    }
+    else {
+        newNode->prev = ptr;
+        newNode->next = ptr->next;
+    }
+    newNode->prev->next = newNode->next->prev = newNode;
+    return true;
+
 }
 
 void printn (List* list)
@@ -250,7 +364,10 @@ void printn (List* list)
     }
 
     for (Node* a = list->head ; a ; a = a->next) {
-        printf("[%s] : %d", a->name, a->value);
+        if (a->obj == NULL) 
+            printf("[%s] : %d", a->path, a->value);
+        else
+            printo(a->obj);
         if (a->next != NULL)
             printf(" <=> ");
         else

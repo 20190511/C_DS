@@ -145,6 +145,33 @@ void test6()
     */
 }
 
+//자유 구조체 연결리스트 구현.
+void test7()
+{
+    List* l = init(NULL);
+    append_head_obj(l, set_int(NULL, 4));
+    append_head_obj(l, set_double(NULL, 4.15));
+    append_head_obj(l, set_char(NULL, 'c'));
+    int arr[] = {1,5,3,4,5};
+    append_tail_obj(l, set_obj(NULL, (void*)arr));
+    printn(l);
+
+    Node* a = pop_rear(l);
+    int *a2 = (int*)set_get(a->obj);
+    printf("배열 [3] : %d\n", a2[3]);
+
+    typedef struct {
+        int k;
+        const char* n;
+    }ts;
+    ts test_struct = {1, "테스트 자료구조"};
+    append_head_obj(l, set_obj(NULL, (void*)&test_struct));
+    printn(l);
+    
+    ts* retval = (ts*)set_get(pop_front(l)->obj);
+    printf("구조체 : %d, %s\n", retval->k, retval->n);
+}
+
 int main(void)
 {
 #ifdef NON_PRINT_BLOCK
@@ -152,8 +179,9 @@ int main(void)
     test2();    // Deque 에제 2
     test3();    // Deque 예제 3
     test4();    // Deque 예제 4
-#endif
     test5();    // B_Tree 예제
     test6();    // Heap 예제
+#endif
+    test7();    //Object (자유형 자료구조 테스트)
     exit(0);
 }

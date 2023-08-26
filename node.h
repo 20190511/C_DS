@@ -1,5 +1,6 @@
 #ifndef NODE_H
 #define NODE_H
+#include "object.h"
 
 #ifndef PATH_SIZE
 #define PATH_SIZE        256
@@ -19,6 +20,7 @@ typedef struct node {
     int inode;
     int value;
     char path[PATH_SIZE];
+    Obj* obj;
     struct node* next;
     struct node* prev; 
     struct node* par;
