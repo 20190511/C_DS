@@ -5,7 +5,7 @@
 > ![image](https://github.com/20190511/C_DS/assets/70988272/ec6a96d5-52a1-4b20-be48-18cd948d3b38)
 - [_Deque를 이용한 (c,h파일) 파일 복사 예제파일_](https://github.com/20190511/C_DS/blob/main/test_filecopy.c)  
 > ![image](https://github.com/20190511/C_DS/assets/70988272/2000a771-c52e-4796-a8fb-a4b02faf7062)  
-
+- [_Deque+Object 를 이용한 csv파일 Writer 모듈_](https://github.com/20190511/C_DS/blob/main/csv_helper.c)
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
