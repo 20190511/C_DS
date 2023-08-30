@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include "deque.h"
 
 #ifndef NAME_SIZE
@@ -25,58 +26,80 @@ typedef struct {
 }csv_line;
 
 typedef struct ___io{
-    FILE*   fp;
-    List*   line;
-    int     fd;
-    char    filename[NAME_SIZE];
-    int     max_row;
-    int     max_col; 
+    FILE*       fp;
+    List*       line;
+    csv_line*   index;
+    int         fd;
+    char        filename[NAME_SIZE];
+    int         max_row;
+    int         max_col; 
 }FILE_CSV;
 
 
+//파일 초기화 및 유틸리티
 List* file_list = init();
 FILE_CSV*   convert_filecsv(Node* n);
-FILE_CSV*   cfopen(const char* filename);
+FILE_CSV*   cfopen(const char* filename, int index=false);
 void        cfclose(FILE_CSV* fc);
 
+//파일 조작함수
 char*       get_col_ptr(char* line, int col);
 int         cell(FILE_CSV* f, int row, int col, char* value);
 int         insert_row(FILE_CSV* f, List* li, int row=MAX_CELL, int insert=1);
 int         insert_col(FILE_CSV* f, List* li, int col=MAX_CELL, int insert=1);
 
-/** 출력함수 **/
+//출력함수
 void        print_csvinfo (FILE_CSV* c);
 void        print_csvall ();
 
+//파일 출력함수
 int         cflush(FILE_CSV* c);
+
+// 변환함수
+csv_line*   csv_lines(const char* arg, ...);
+csv_line*   csv_linev(char* arg[]);
+
+
+// 인덱스 설정 함수
+int         csv_setindex(FILE_CSV* f, csv_line* index, int first_line=false);
+
+//값 가져오기
+char*       csv_getCell(FILE_CSV* f, int row, int col);     // 셀 위치 가져오기
+List*       csv_getRow(FILE_CSV* f, int row);               // 행 값 리스트로 가져오기
+List*       csv_getCol(FILE_CSV* f, int col);               // 열 값 리스트로 가져오기
+#define DEBUG
+#ifdef DEBUG
 int main(void)
 {
-    FILE_CSV* t = cfopen("passwd.csv");
-
-    //cell(t, 4, 2, "Hello");
-    List* v = init();
-    append_tail(v, 10);
-    append_tail(v, 20);
-    append_tail(v, 30);
-    insert_col(t, v, 3, true);
-    print_csvall();
-    cflush(t);
+    FILE_CSV* t = cfopen("passwd.csv", true);
+    //csv_setindex(t, csv_lines("학번", "비밀번호", "고유코드", NULL), false);
+    //print_csvinfo(t);
+    //cflush(t);
+    List* l = csv_getCol(t, 1);
+    printn(l);
+    printf("%s\n", csv_getCell(t, 1, -1));
     exit(0);
 }
+#endif
 
 /**
  * filename으로 csv파일 스트림 FILE_CSV를 생성하는 함수, 
  * 해당 csv파일의 라인별로 출력하여 FILE_CSV->line 리스트로 저장함
  * @param   filename    :csv 파일 파일 경로
+ * @param   index       :csv 첫 행을 인덱스로 설정하는가 여부
  * @return  파일 스트림 FILE_CSV 리턴
 */
-FILE_CSV* cfopen(const char* filename)
+FILE_CSV*   cfopen(const char* filename, int index)
 {
+    // FILE_CSV* 초기화 블록
     FILE_CSV* new_f = (FILE_CSV*)malloc(sizeof(FILE_CSV));
     new_f->max_col = new_f->max_row = 0;
     new_f->line = init();
+    new_f->index = NULL;
     strncpy(new_f->filename, filename, NAME_SIZE); 
     char* typecheck = strrchr(new_f->filename, '.');
+
+
     if (!strcmp(new_f->filename, ".csv")) {
         free(new_f);
         fprintf(stderr, "your file type is not csv file : %s\n", filename);
@@ -130,6 +153,12 @@ FILE_CSV* cfopen(const char* filename)
     }
     fseek(new_f->fp, 0, SEEK_SET); 
     append_tail_obj(file_list, set_obj(NULL, (void*)new_f));
+
+    if (index) {
+        if (!csv_setindex(new_f, NULL, true)) {
+            fprintf(stderr, "set_index error : %s\n", new_f->filename);
+        }
+    }
     return new_f;
 }
 
@@ -165,6 +194,8 @@ void        print_csvinfo (FILE_CSV* c)
     }
     printf("filename : %s\n", c->filename);
     printf("maxrow = %d, maxcol = %d\n", c->max_row, c->max_col);
+    if (c->index)
+        printf("[%d] {index} %s", c->index->max_col, c->index->line);
     Node* ss = c->line->head;
     for (ss = ss->next ; ss->value != -1 ; ss = ss->next) {
         csv_line* val = (csv_line*)set_get(ss->obj);
@@ -479,6 +510,9 @@ int        cflush(FILE_CSV* c)
     }
     c->fd = fileno(c->fp);
 
+    if (c->index != NULL) {
+        fprintf(c->fp, "%s", c->index->line);
+    }
     //Data Print to File
     for (Node* s = c->line->head->next ; s->value != -1 ; s = s->next) {
         csv_line* n = (csv_line*)set_get(s->obj);
@@ -486,4 +520,243 @@ int        cflush(FILE_CSV* c)
     }
     printf("--- complete fflush : %s (row: %d, col: %d)\n", c->filename, c->max_row, c->max_col);
     return true;     
+}
+
+/**
+ * 가변 문자열을 --> csv_line* 으로 변환하는 함수
+ * @param arg : 가변변수
+ * @return (arg1, arg2, ..., argN, 0) 인자로부터 문자열을 ,단위로 합쳐서 csv_line* 으로 변환한 포인터
+ * @warning (주의!!), 가변인자 마지막은 항상 0으로 끝나야함,   
+*/
+csv_line*   csv_lines(const char* arg, ...)
+{
+    if (arg == NULL) {
+        fprintf(stderr, "csv_lines error : not argument\n");
+        return NULL;
+    }
+
+    //가변변수 위치설정 및 초기설정
+    va_list ap;
+    char* next;
+    csv_line* n = (csv_line*)malloc(sizeof(csv_line));
+    memset(n->line, 0, BUF_SIZE);
+    n->max_col = 1;
+
+    strcpy(n->line, arg);
+    va_start(ap, arg);
+
+    //가변인자처리 
+    while((next = va_arg(ap, char*)) != NULL)  {
+        n->max_col++;
+        printf("%s\n", next);
+        sprintf(n->line + strlen(n->line), ",%s", next);
+    }
+    strcat(n->line, "\n");
+    va_end(ap);
+    return n;
+}
+
+/**
+ * 문자열 배열 --> csv_line* 으로 변환하는 함수
+ * @param arg : 배열
+ * @return arg 인자로부터 문자열을 ,단위로 합쳐서 csv_line* 으로 변환한 포인터
+ * @warning (주의!!), 배열의 마지막은 항상 0으로 끝나야함,   
+*/
+csv_line*   csv_linev(char* arg[])
+{
+    if (arg[0] == NULL) {
+        fprintf(stderr, "csv_linev error : not argument\n");
+        return NULL;
+    }
+    int size; 
+    csv_line* n = (csv_line*)malloc(sizeof(csv_line));
+    memset(n->line, 0, BUF_SIZE);
+    n->max_col = 0;
+    
+    for (char* s = arg[0] ; s != NULL; s++) {
+        n->max_col++;
+        if (s != arg[0])
+            snprintf(n->line + strlen(n->line), strlen(s) + 1, "%s", s);
+        else {
+            strcpy(n->line, s); 
+        }
+    }
+
+    return n;
+}
+
+/**
+ * f파일의 첫 번째 행을 index로 설정하는 함수
+ * @warning first_line은 기본적으로 false로 설정
+ * @warning index나 first_line은 둘 중 하나는 무조건 NULL or false가 되어야함
+ * @param f             : FILE_CSV* 스트림
+ * @param index         : 첫 번째 행으로 설정할 index
+ * @param first_line    : 현재 f에서 첫 번째 행을 index로 설정하는가 여부
+ * @return 성공시 true, 에러시 false
+*/
+int         csv_setindex(FILE_CSV* f, csv_line* index, int first_line)
+{
+    if (f == NULL || (index != NULL && first_line == true) || 
+    (index == NULL && first_line == false)) {
+        fprintf(stderr, "csv_setindex error\n");
+        return false;
+    }
+
+    if (index != NULL) {
+        f->index = index;
+        return true;
+    }
+    
+    if (first_line == true)  {
+        Node* first_row = pop_front(f->line);
+        f->index = (csv_line*)set_get(first_row->obj);
+        return true;
+    }
+    return false;
+}
+
+
+/**
+ * csv_get 류의 함수에서 호출할 함수
+ * @param f         :   FILE_CSV* 파일 스트림
+ * @param col       :   열 위치
+ * @param row_idx   :   rod_idx에 해당하는 블록
+ * @return 성공시 해당 위치의 값, 실패시 NULL
+*/
+char*       csv_in_getCell(FILE_CSV* f, int col, Node* row_idx)
+{
+    csv_line* line = (csv_line*)set_get(row_idx->obj);
+    if ((col > 0 && col > line->max_col) 
+    || (col < 0 && -col > line->max_col) 
+    || col == 0) {
+        fprintf(stderr, "csv_getCell error : outOfIndex\n");
+        return NULL;
+    }
+
+    char tmp_line[BUF_SIZE] = {0,};
+    if (col < 0) 
+        col = line->max_col + col + 1;
+    
+    strcpy(tmp_line, get_col_ptr(line->line, col));
+    char* next_col = strchr(tmp_line, ',');
+    if (next_col != NULL) {
+        *next_col = 0;
+    }
+    char* last_col = tmp_line + strlen(tmp_line) - 1;
+    if (*last_col == '\n')
+        *last_col = 0;
+    
+    char* ret_val = (char*)malloc(strlen(tmp_line) + 1);
+    strcpy(ret_val, tmp_line);
+    return ret_val;
+}
+
+/**
+ * csv 파일의 csv_get 류에서 행 위치를 찾아주는 함수
+ * @param   f   : FILE_CSV* 파일스트림
+ * @param   row : 행 번호
+ * @return  성공시 해당 행 번호의 row, 실패시 NULL
+*/
+Node*   csv_in_returnRow(FILE_CSV* f, int row)
+{
+    Node* row_idx;
+    int i;
+    if (row < 0) {
+        row *= -1;
+        row_idx = f->line->tail->prev;
+        for (i = 1 ; (i < row && row_idx != NULL); i++, row_idx = row_idx->prev); 
+    }
+    else {
+        row_idx = f->line->head->next;
+        for (i = 1 ; (i < row && row_idx != NULL); i++, row_idx = row_idx->next);
+    }
+
+    if (row_idx == NULL) {
+        fprintf(stderr, "csv_int_returnRow error : notFoundRow\n");
+        return NULL;
+    } 
+    return row_idx;
+}
+/**
+ * csv 파일에서 해당 위치의 값 가져오기
+ * @param f     :   FILE_CSV* 파일 스트림
+ * @param row   :   행 위치
+ * @param col   :   열 위치
+ * @return 성공시 해당 위치의 값, 실패시 NULL
+*/
+char*       csv_getCell(FILE_CSV* f, int row, int col)
+{
+    if (f == NULL || row == 0) {
+        fprintf(stderr, "csv_getCell error : non FILE_CSV\n");
+        return NULL;
+    }
+
+    //행 위치의 블록 가져오기
+    Node* row_idx = csv_in_returnRow(f, row);
+    char* ret_val;
+    if ((ret_val = csv_in_getCell(f, col, row_idx)) == NULL) {
+        fprintf(stderr, "csv_getCell error: can't extract {%d,%d}", row, col);
+        return NULL;
+    }
+
+    return ret_val;
+}
+
+/**
+ * csv 파일에서 해당 열의 값을 가져와서 List* 형식으로 출력
+ * @param f     :   FILE_CSV* 파일 스트림
+ * @param col   :   열 위치
+ * @return 성공시 연결리스트(path에 연결), 실패시 NULL
+*/
+List*       csv_getRow(FILE_CSV* f, int row)
+{
+    if (f == NULL || row == 0) {
+        fprintf(stderr, "csv_getRow error : non FILE_CSV\n");
+        return NULL;
+    }
+    Node* node_row = csv_in_returnRow(f, row);
+    if (node_row == NULL) {
+        fprintf(stderr, "csv_getRow error : indexofError\n");
+        return NULL;
+    }
+    List* li = init();
+    csv_line* line = (csv_line*)set_get(node_row->obj);
+    char tmp_line[BUF_SIZE] = {0,};
+    strcpy(tmp_line, line->line);
+    char* tok = strtok(tmp_line, ",");
+    while(tok != NULL) {
+        char* enter_check = tok + strlen(tok) - 1;
+        if (*enter_check == '\n')
+            *enter_check = 0;
+        append_tail(li, 0, tok);
+        tok = strtok(NULL, ",");
+    }
+    return li;
+}
+
+/**
+ * csv 파일에서 해당 열의 값을 가져와서 List* 형식으로 출력
+ * @param f     :   FILE_CSV* 파일 스트림
+ * @param row   :   행 위치
+ * @return 성공시 연결리스트(path에 연결), 실패시 NULL
+*/
+List*       csv_getCol(FILE_CSV* f, int col)
+{
+    if (f == NULL) {
+        fprintf(stderr, "csv_getCol error : non FILE_CSV\n");
+        return NULL;
+    }
+
+    //행 위치의 블록 가져오기
+    Node* row_idx;
+    List* li = init();
+    for (row_idx = f->line->head->next ; row_idx->value != -1 ; row_idx = row_idx->next) {
+        char* ret_val;
+        if ((ret_val = csv_in_getCell(f, col, row_idx)) == NULL) {
+            fprintf(stderr, "csv_getCol error: can't extract {%d}", col);
+            return NULL;
+        }
+        append_tail(li, 0, ret_val);
+    } 
+    return li;
 }
