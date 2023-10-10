@@ -6,6 +6,12 @@
 - [_Deque를 이용한 (c,h파일) 파일 복사 예제파일_](https://github.com/20190511/C_DS/blob/main/test_filecopy.c)  
 > ![image](https://github.com/20190511/C_DS/assets/70988272/2000a771-c52e-4796-a8fb-a4b02faf7062)  
 - [_Deque+Object 를 이용한 csv파일 Writer 모듈_](https://github.com/20190511/C_DS/blob/main/csv_helper.c)
+- [_실행파일 지워주는 모듈_](https://github.com/20190511/C_DS/blob/main/cleaner.c)
+> ingoreList.txt에 지우기 싫은 이름을 적어두면 안 지워짐.
+> ![image](https://github.com/20190511/C_DS/assets/70988272/2d100392-2dba-4aff-8cac-fa950ef1357f)
+> ![image](https://github.com/20190511/C_DS/assets/70988272/0c292689-dcbc-4b27-972e-364b0ca7561b)
+> ![image](https://github.com/20190511/C_DS/assets/70988272/c23ffc8a-7134-4794-afce-0163bf82f5eb)
+> ![image](https://github.com/20190511/C_DS/assets/70988272/fa6b2079-553b-450d-b305-45cbde1b9ed6)
 
 ## [_1. Deque.h (데크)_](https://github.com/20190511/C_DS/blob/main/deque.h)
 
