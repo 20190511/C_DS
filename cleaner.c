@@ -18,6 +18,7 @@ int main(int argc ,char* argv[])
     printf("Erase Dir name : %s\n", argv[1]);
     char* path = pathConverter(argv[1]);
     cleaner(path);
+    free(path);
     exit(0);
 }
 
@@ -64,6 +65,7 @@ char* pathConverter(char* path)
         *erase_p = '\0';
     char* retPath = (char*)malloc(strlen(converterPath) + 1);
     strcpy(retPath, converterPath);
+    freeList(li);
     return retPath;
 }
 
